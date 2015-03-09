@@ -21,6 +21,17 @@ typedef NS_ENUM(NSInteger, CTFeedbackSection){
     CTFeedbackSectionAppInfo
 };
 
+#import <sys/utsname.h> // import it in your header or implementation file.
+
+NSString* deviceName()
+{
+    struct utsname systemInfo;
+    uname(&systemInfo);
+    
+    return [NSString stringWithCString:systemInfo.machine
+                              encoding:NSUTF8StringEncoding];
+}
+
 @interface CTFeedbackViewController ()<UIImagePickerControllerDelegate,UIActionSheetDelegate,UINavigationControllerDelegate>
 
 @property (nonatomic, readonly) NSUInteger selectedTopicIndex;
@@ -55,21 +66,21 @@ typedef NS_ENUM(NSInteger, CTFeedbackSection){
 + (NSArray *)defaultTopics
 {
     return @[
-            @"Question",
-            @"Request",
-            @"Bug Report",
-            @"Other"
-    ];
+             @"Question",
+             @"Request",
+             @"Bug Report",
+             @"Other"
+             ];
 }
 
 + (NSArray *)defaultLocalizedTopics
 {
     return @[
-            CTFBLocalizedString(@"Question"),
-            CTFBLocalizedString(@"Request"),
-            CTFBLocalizedString(@"Bug Report"),
-            CTFBLocalizedString(@"Other")
-    ];
+             CTFBLocalizedString(@"Question"),
+             CTFBLocalizedString(@"Request"),
+             CTFBLocalizedString(@"Bug Report"),
+             CTFBLocalizedString(@"Other")
+             ];
 }
 
 - (instancetype)initWithTopics:(NSArray *)topics localizedTopics:(NSArray *)localizedTopics
@@ -86,16 +97,16 @@ typedef NS_ENUM(NSInteger, CTFeedbackSection){
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-
+    
     self.title = CTFBLocalizedString(@"Feedback");
-
+    
     [self.tableView registerClass:[CTFeedbackCell class] forCellReuseIdentifier:[CTFeedbackTopicCellItem reuseIdentifier]];
     [self.tableView registerClass:[CTFeedbackCell class] forCellReuseIdentifier:[CTFeedbackContentCellItem reuseIdentifier]];
     [self.tableView registerClass:[CTFeedbackCell class] forCellReuseIdentifier:[CTFeedbackInfoCellItem reuseIdentifier]];
     [self.tableView registerClass:[CTFeedbackCell class] forCellReuseIdentifier:[CTFeedbackAdditionInfoCellItem reuseIdentifier]];
-
+    
     self.cellItems = @[self.inputCellItems, self.additionCellItems ,self.deviceInfoCellItems, self.appInfoCellItems];
-
+    
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:CTFBLocalizedString(@"Mail") style:UIBarButtonItemStylePlain target:self action:@selector(sendButtonTapped:)];
 }
 
@@ -106,7 +117,7 @@ typedef NS_ENUM(NSInteger, CTFeedbackSection){
     if (self.navigationController.navigationBarHidden) {
         self.navigationController.navigationBarHidden = NO;
     }
-
+    
     if (self.presentingViewController.presentedViewController) {
         self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel target:self action:@selector(cancelButtonTapped:)];
     }
@@ -154,7 +165,7 @@ typedef NS_ENUM(NSInteger, CTFeedbackSection){
 - (void)setTopics:(NSArray *)topics
 {
     _topics = topics;
-
+    
     self.selectedTopic = _topics.count >= 1 ? _topics[0] : @"";
 }
 
@@ -166,9 +177,9 @@ typedef NS_ENUM(NSInteger, CTFeedbackSection){
 - (NSArray *)inputCellItems
 {
     NSMutableArray *result = [NSMutableArray array];
-
+    
     __weak CTFeedbackViewController *weakSelf = self;
-
+    
     self.topicCellItem = [CTFeedbackTopicCellItem new];
     self.topicCellItem.topic = self.localizedTopics[self.selectedTopicIndex];
     self.topicCellItem.action = ^(CTFeedbackViewController *sender) {
@@ -182,81 +193,81 @@ typedef NS_ENUM(NSInteger, CTFeedbackSection){
             cellItem.topic = weakSelf.localizedTopics[weakSelf.selectedTopicIndex];
             [weakSelf.tableView reloadRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
         };
-
+        
         [sender.navigationController pushViewController:topicsViewController animated:YES];
     };
     [result addObject:self.topicCellItem];
-
+    
     self.contentCellItem = [CTFeedbackContentCellItem new];
     [self.contentCellItem addObserver:self forKeyPath:@"cellHeight" options:NSKeyValueObservingOptionNew context:nil];
     [result addObject:self.contentCellItem];
-
+    
     return result.copy;
 }
 
 - (NSArray *)additionCellItems{
     NSMutableArray *result = [NSMutableArray array];
-
-	__weak CTFeedbackViewController *weakSelf = self;
-
-	self.additionCellItem = [CTFeedbackAdditionInfoCellItem new];
+    
+    __weak CTFeedbackViewController *weakSelf = self;
+    
+    self.additionCellItem = [CTFeedbackAdditionInfoCellItem new];
     self.additionCellItem.value = CTFBLocalizedString(@"Additional detail");
     self.additionCellItem.action = ^(CTFeedbackViewController *sender){
-		UIActionSheet *choiceSheet = [[UIActionSheet alloc] initWithTitle:nil
+        UIActionSheet *choiceSheet = [[UIActionSheet alloc] initWithTitle:nil
                                                                  delegate:weakSelf
                                                         cancelButtonTitle:CTFBLocalizedString(@"Cancel")
                                                    destructiveButtonTitle:nil
                                                         otherButtonTitles:CTFBLocalizedString(@"Camera"), CTFBLocalizedString(@"PhotoLibrary"), nil];
-		[choiceSheet showInView:weakSelf.view];
+        [choiceSheet showInView:weakSelf.view];
     };
-
+    
     [result addObject:self.additionCellItem];
-
+    
     return [result copy];
 }
 
 - (NSArray *)deviceInfoCellItems
 {
     NSMutableArray *result = [NSMutableArray array];
-
+    
     CTFeedbackInfoCellItem *platformItem = [CTFeedbackInfoCellItem new];
     platformItem.title = CTFBLocalizedString(@"Device");
     platformItem.value = self.platformString;
     [result addObject:platformItem];
-
+    
     CTFeedbackInfoCellItem *systemVersionItem = [CTFeedbackInfoCellItem new];
     systemVersionItem.title = CTFBLocalizedString(@"iOS");
     systemVersionItem.value = self.systemVersion;
     [result addObject:systemVersionItem];
-
+    
     return result.copy;
 }
 
 - (NSArray *)appInfoCellItems
 {
     NSMutableArray *result = [NSMutableArray array];
-
+    
     if (!self.hidesAppNameCell) {
         CTFeedbackInfoCellItem *nameItem = [CTFeedbackInfoCellItem new];
         nameItem.title = CTFBLocalizedString(@"Name");
         nameItem.value = self.appName;
         [result addObject:nameItem];
     }
-
+    
     if (!self.hidesAppVersionCell) {
         CTFeedbackInfoCellItem *versionItem = [CTFeedbackInfoCellItem new];
         versionItem.title = CTFBLocalizedString(@"Version");
         versionItem.value = self.appVersion;
         [result addObject:versionItem];
     }
-
+    
     if (!self.hidesAppBuildCell) {
         CTFeedbackInfoCellItem *buildItem = [CTFeedbackInfoCellItem new];
         buildItem.title = CTFBLocalizedString(@"Build");
         buildItem.value = self.appBuild;
         [result addObject:buildItem];
     }
-
+    
     return result.copy;
 }
 
@@ -265,13 +276,13 @@ typedef NS_ENUM(NSInteger, CTFeedbackSection){
     int mib[2];
     size_t len;
     char *machine;
-
+    
     mib[0] = CTL_HW;
     mib[1] = HW_MACHINE;
     sysctl(mib, 2, NULL, &len, NULL, 0);
     machine = malloc(len);
     sysctl(mib, 2, machine, &len, NULL, 0);
-
+    
     NSString *platform = [NSString stringWithCString:machine encoding:NSASCIIStringEncoding];
     free(machine);
     return platform;
@@ -279,18 +290,19 @@ typedef NS_ENUM(NSInteger, CTFeedbackSection){
 
 - (NSString *)platformString
 {
-    NSString *platform = [self platform];
-    
-    // Reading a file with platform names
-    // http://theiphonewiki.com/wiki/Models
-    NSBundle *bundle = [NSBundle feedbackBundle];
-    NSString *filePath = [bundle pathForResource:@"PlatformNames" ofType:@"plist"];
-    NSDictionary *platformNamesDic = [NSDictionary dictionaryWithContentsOfFile:filePath];
-    
-    // Changing a platform name to a human readable version
-    platform = platformNamesDic[platform];
-
-    return platform;
+    //    NSString *platform = [self platform];
+    //
+    //    // Reading a file with platform names
+    //    // http://theiphonewiki.com/wiki/Models
+    //    NSBundle *bundle = [NSBundle feedbackBundle];
+    //    NSString *filePath = [bundle pathForResource:@"PlatformNames" ofType:@"plist"];
+    //    NSDictionary *platformNamesDic = [NSDictionary dictionaryWithContentsOfFile:filePath];
+    //
+    //    // Changing a platform name to a human readable version
+    //    platform = platformNamesDic[platform];
+    //
+    //    return platform;
+    return deviceName();
 }
 
 - (NSString *)systemVersion
@@ -394,7 +406,7 @@ static NSString * const ATTACHMENT_FILENAME = @"screenshot.jpg";
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
 {
-//    return 3;
+    //    return 3;
     return [self.cellItems count];
 }
 
@@ -407,9 +419,9 @@ static NSString * const ATTACHMENT_FILENAME = @"screenshot.jpg";
 {
     CTFeedbackCellItem *cellItem = self.cellItems[(NSUInteger)indexPath.section][(NSUInteger)indexPath.row];
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:[[cellItem class] reuseIdentifier] forIndexPath:indexPath];
-
+    
     [cellItem configureCell:cell atIndexPath:indexPath];
-
+    
     return cell;
 }
 
@@ -441,7 +453,7 @@ static NSString * const ATTACHMENT_FILENAME = @"screenshot.jpg";
 {
     CTFeedbackCellItem *cellItem = self.cellItems[(NSUInteger)indexPath.section][(NSUInteger)indexPath.row];
     if (cellItem.action) cellItem.action(self);
-
+    
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 }
 
@@ -468,7 +480,7 @@ static NSString * const ATTACHMENT_FILENAME = @"screenshot.jpg";
             [self.delegate feedbackViewController:self didFinishWithMailComposeResult:result error:error];
         }
     };
-
+    
     if (result == MFMailComposeResultCancelled) {
         completion = nil;
     } else if (result == MFMailComposeResultFailed && error) {
@@ -479,7 +491,7 @@ static NSString * const ATTACHMENT_FILENAME = @"screenshot.jpg";
                                               otherButtonTitles:nil];
         [alert show];
     }
-
+    
     [controller dismissViewControllerAnimated:YES completion:completion];
 }
 
@@ -500,7 +512,7 @@ static NSString * const ATTACHMENT_FILENAME = @"screenshot.jpg";
         if([self isCameraAvailable]) {
             sourceType = UIImagePickerControllerSourceTypeCamera;
         }
-
+        
         [self createImagePickerControllerWithSourceType:sourceType];
     } else if (buttonIndex == 1) {
         // PhotoLibrary
@@ -513,10 +525,10 @@ static NSString * const ATTACHMENT_FILENAME = @"screenshot.jpg";
     [picker dismissViewControllerAnimated:YES completion:^() {
         NSIndexPath *indexPath = [NSIndexPath indexPathForRow:0 inSection:CTFeedbackSectionScreenshot];
         CTFeedbackAdditionInfoCellItem *cellItem = self.cellItems[(NSUInteger)indexPath.section][(NSUInteger)indexPath.row];
-
+        
         UIImage *image = [info objectForKey:UIImagePickerControllerEditedImage];
         if (image == nil){
-			image = [info objectForKey:UIImagePickerControllerOriginalImage];
+            image = [info objectForKey:UIImagePickerControllerOriginalImage];
         }
         cellItem.screenImage = image;
         //        cellItem.value = [[info objectForKey:@"UIImagePickerControllerReferenceURL"] absoluteString];
